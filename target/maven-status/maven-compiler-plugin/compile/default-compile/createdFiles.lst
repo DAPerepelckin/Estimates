@@ -13,6 +13,8 @@ sample\MainLauncher.class
 sample\welcomeWindow\WelcomeController.class
 sample\workBaseWindow\WorkBaseController$1.class
 sample\newTableDialog\NewTableController$Contractor.class
+sample\newWorkWindow\NewWorkController$1.class
+sample\newWorkWindow\NewWorkController$Group.class
 sample\newGroupWindow\NewGroupController.class
 sample\Main.class
 sample\forWindow\ForWindowController.class
@@ -20,6 +22,7 @@ sample\saveExcel\SaveExcel.class
 sample\opionsWindow\OptionsController$1.class
 sample\workBaseWindow\WorkRow.class
 sample\opionsWindow\OptionsController.class
+sample\newWorkWindow\NewWorkController.class
 sample\forWindow\ForWindowController$Contractor.class
 sample\Styles.class
 sample\mainTable\MainRow.class
