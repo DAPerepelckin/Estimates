@@ -19,7 +19,7 @@
          <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
       </columnResizePolicy>
    </TableView>
-   <TextField fx:id="searchLine" layoutX="134.0" layoutY="360.0" AnchorPane.leftAnchor="135.0" AnchorPane.rightAnchor="115.0" />
+   <TextField fx:id="searchLine" layoutX="134.0" layoutY="360.0" AnchorPane.bottomAnchor="15.0" AnchorPane.leftAnchor="135.0" AnchorPane.rightAnchor="115.0" />
    <Button fx:id="apply" focusTraversable="false" layoutX="334.0" layoutY="373.0" mnemonicParsing="false" prefWidth="90.0" text="Выбрать" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="15.0" />
    <Button fx:id="append" focusTraversable="false" layoutX="14.0" layoutY="361.0" mnemonicParsing="false" prefWidth="110.0" text="Нет нужного?" AnchorPane.bottomAnchor="15.0" AnchorPane.leftAnchor="15.0" />
 </AnchorPane>

@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import sample.loadWorkBase.LoadWorksBase;
 import sample.welcomeWindow.WelcomeController;
 
 public class Main extends Application {
@@ -12,7 +13,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-       //new  LoadWorksBase().load();
+        //new LoadWorksBase().load();
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/welcomeWindow.fxml"));
         Parent root = loader.load();
         primaryStage.setTitle("Estimates");

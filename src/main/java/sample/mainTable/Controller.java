@@ -377,8 +377,9 @@ public class Controller implements Initializable {
             newWindow.setScene(secondScene);
             newWindow.setTitle("Estimates");
             newWindow.centerOnScreen();
+            if(!conn.isClosed()){
             if(!conn.getAutoCommit())conn.commit();
-            conn.close();
+            conn.close();}
             WelcomeController controller = loader.getController();
             newWindow.show();
             closeBtn.getScene().getWindow().hide();

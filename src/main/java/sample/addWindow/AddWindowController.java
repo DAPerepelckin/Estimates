@@ -69,8 +69,10 @@ public class AddWindowController implements Initializable {
             newWindow.initOwner(this.nameField.getScene().getWindow());
             newWindow.centerOnScreen();
             WorkBaseController controller = loader.getController();
+            controller.conn = conn;
             controller.owner = this;
             newWindow.show();
+            controller.update("");
         } catch (IOException ex) {PrintException.print(ex);}
     }
 
