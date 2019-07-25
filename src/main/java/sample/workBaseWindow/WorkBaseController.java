@@ -5,18 +5,18 @@ import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import sample.PrintException;
 import sample.addWindow.AddWindowController;
-import sample.newGroupWindow.NewGroupController;
 import sample.newWorkWindow.NewWorkController;
 
 import java.net.URL;
 import java.sql.*;
+import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.prefs.Preferences;
 
 
 public class WorkBaseController implements Initializable {
@@ -31,8 +31,9 @@ public class WorkBaseController implements Initializable {
     public TableColumn<WorkRow,String> unitCol;
     public AddWindowController owner;
     public Connection conn;
+    public Button deleteBtn;
     private WorkCollection list = new WorkCollection();
-    private Preferences user = Preferences.userRoot();
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -43,15 +44,12 @@ public class WorkBaseController implements Initializable {
         unitCol.setCellValueFactory(new PropertyValueFactory<>("unit"));
         workList.setItems(list.getRowList());
 
-        apply.setDefaultButton(true);
+
 
         workList.setOnKeyReleased(event -> {
-            switch (event.getCode()){
-               // case ENTER: owner.setNameField(workList.getSelectionModel().getSelectedItem().getName(),workList.getSelectionModel().getSelectedIndex()+1);
-               //     workList.getScene().getWindow().hide();break;
-                case ESCAPE: workList.getScene().getWindow().hide();break;
-            }
+                if(event.getCode()==KeyCode.ESCAPE)workList.getScene().getWindow().hide();
         });
+
         searchLine.textProperty().addListener((observable, oldValue, newValue) -> update(newValue));
 
 
@@ -81,13 +79,44 @@ public class WorkBaseController implements Initializable {
 
         });
 
+        deleteBtn.setOnAction(event -> deleteAction());
+
+        workList.setOnKeyReleased(event -> {
+            if(event.getCode()== KeyCode.DELETE)deleteAction();
+        });
 
         workList.setRowFactory(e->{
            TableRow<WorkRow> row = new TableRow<>();
            row.setOnMouseClicked(mouseEvent -> {
                if(mouseEvent.getClickCount() ==2&&(!row.isEmpty())){
-                   owner.setNameField(row.getItem().getName(),row.getItem().getId());
-                   workList.getScene().getWindow().hide();
+                   if(!deleteBtn.isVisible()) {
+                       owner.setNameField(row.getItem().getName(), row.getItem().getId());
+                       workList.getScene().getWindow().hide();
+                   }else{
+                       try {
+                           FXMLLoader loader = new FXMLLoader(getClass().getResource("/newWorkWindow.fxml"));
+                           AnchorPane addLayout = loader.load();
+                           Scene secondScene = new Scene(addLayout);
+                           Stage newWindow = new Stage();
+                           newWindow.setScene(secondScene);
+                           newWindow.setTitle(workList.getSelectionModel().getSelectedItem().getName());
+                           newWindow.initModality(Modality.WINDOW_MODAL);
+                           newWindow.initOwner(append.getScene().getWindow());
+                           newWindow.centerOnScreen();
+                           NewWorkController controller = loader.getController();
+                           controller.conn = conn;
+                           String num =workList.getSelectionModel().getSelectedItem().getNum();
+                           num = num.substring(0,num.indexOf("."));
+                           int index = Integer.parseInt(num)-1;
+                           controller.groups.setValue(controller.groupList.get(index));
+                           controller.unitField.setText(workList.getSelectionModel().getSelectedItem().getUnit());
+                           controller.nameField.setText(workList.getSelectionModel().getSelectedItem().getName());
+                           controller.priceField.setText(workList.getSelectionModel().getSelectedItem().getPrice());
+                           controller.workID = workList.getSelectionModel().getSelectedItem().getId();
+                           newWindow.showAndWait();
+                           update("");
+                       }catch (Exception ex){PrintException.print(ex);}
+                   }
                }
            });
            return row;
@@ -95,6 +124,39 @@ public class WorkBaseController implements Initializable {
 
 
     }
+    private void deleteAction(){
+        try {
+            if (deleteBtn.isVisible()) {
+                if (workList.getSelectionModel().getSelectedItems().size() > 0) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Удаление работы");
+                    alert.setHeaderText("Вы уверены что хотите удалить работу?");
+                    Optional<ButtonType> option = alert.showAndWait();
+                    if (option.get() == ButtonType.OK) {
+                        ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(WORK_ID) FROM MAIN_TABLE WHERE WORK_ID = "+workList.getSelectionModel().getSelectedItem().getId());
+                        if(rs.getInt("COUNT(WORK_ID)")==0) {
+                            conn.createStatement().executeUpdate("DELETE FROM WORKS WHERE WORK_ID = " + workList.getSelectionModel().getSelectedItem().getId());
+                            update("");
+                        }else{
+                            ResultSet rs2 = conn.createStatement().executeQuery("SELECT TABLE_ID FROM MAIN_TABLE WHERE WORK_ID = "+workList.getSelectionModel().getSelectedItem().getId());
+                            String s ="";
+                            while(rs2.next()){
+                                ResultSet rs3 = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM TABLES WHERE TABLE_ID = "+rs2.getInt("TABLE_ID"));
+                                s=s+rs3.getString("TABLE_NAME")+", ";
+                            }
+                            s = s.substring(0,s.length()-2);
+                            alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Работа используется в сметах");
+                            alert.setHeaderText("Работа, которую вы хотите удалить, используется в сметах:");
+                            alert.setContentText(s);
+                            alert.show();
+                        }
+                    }
+                }
+            }
+        }catch (Exception ex){PrintException.print(ex);}
+    }
+
     public void update(String search){
         list.clear();
         try {
@@ -111,4 +173,5 @@ public class WorkBaseController implements Initializable {
         } catch (Exception ex) {
             PrintException.print(ex);}
     }
+
 }

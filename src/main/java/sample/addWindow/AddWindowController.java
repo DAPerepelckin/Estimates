@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -46,7 +44,16 @@ public class AddWindowController implements Initializable {
 
         cancelBtn.setOnAction(e ->cancelBtn.getScene().getWindow().hide());
 
-        applyBtn.setOnAction(e ->add());
+        applyBtn.setOnAction(e -> {
+            if(groups.getValue()==null||nameField.getText().isEmpty()||priceField.getText().isEmpty()||countField.getText().isEmpty()){
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Пустые места");
+                alert.setHeaderText("Заполните все пропуски");
+                alert.show();
+            }else{
+                add();
+            }
+        });
 
         nameField.setOnMouseClicked(e -> initWorkList());
 
@@ -71,6 +78,8 @@ public class AddWindowController implements Initializable {
             WorkBaseController controller = loader.getController();
             controller.conn = conn;
             controller.owner = this;
+            controller.deleteBtn.setVisible(false);
+            controller.searchLine.getProperties().put("pane-left-anchor",135.0);
             newWindow.show();
             controller.update("");
         } catch (IOException ex) {PrintException.print(ex);}

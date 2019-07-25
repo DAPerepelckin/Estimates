@@ -130,11 +130,16 @@ public class SaveExcel {
             }
             sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 0, 5));
 
-            ResultSet works = conn.createStatement().executeQuery("SELECT WORK_ID, N, COUNT, PRICE FROM MAIN_TABLE WHERE GROUP_ID = "+groups.getInt("GROUP_ID")+" ORDER BY N");
+            ResultSet works = conn.createStatement().executeQuery("SELECT WORK_ID, N, COUNT, PRICE,WORK_NOTE FROM MAIN_TABLE WHERE GROUP_ID = "+groups.getInt("GROUP_ID")+" ORDER BY N");
             int index = 1;
             while(works.next()){
                 ResultSet rs = conn.createStatement().executeQuery("SELECT WORK_NAME, UNIT FROM WORKS WHERE WORK_ID = "+works.getInt("WORK_ID"));
-                String name = rs.getString("WORK_NAME");
+                String name = "";
+                if (works.getString("WORK_NOTE") != null) {
+                    name = works.getString("WORK_NOTE");
+                } else {
+                    name = rs.getString("WORK_NAME");
+                }
                 String unit = rs.getString("UNIT");
                 double count = works.getDouble("COUNT");
                 double price = works.getDouble("PRICE");
@@ -990,7 +995,7 @@ public class SaveExcel {
                 double groupSum = 0.0;
                 String groupName = groups.getString("GROUP_NAME");
                 int groupID = groups.getInt("GROUP_ID");
-                ResultSet works = conn.createStatement().executeQuery("SELECT WORK_ID, COUNT, PRICE FROM MAIN_TABLE WHERE GROUP_ID = " + groupID + " AND TABLE_ID = " + ID);
+                ResultSet works = conn.createStatement().executeQuery("SELECT WORK_ID, COUNT, PRICE,WORK_NOTE FROM MAIN_TABLE WHERE GROUP_ID = " + groupID + " AND TABLE_ID = " + ID);
                 int indexSMET = 1;
 
                 row = sheet1.createRow(sheet1.getLastRowNum() + 1);
@@ -1004,7 +1009,12 @@ public class SaveExcel {
 
                 while (works.next()) {
                     ResultSet wrn = conn.createStatement().executeQuery("SELECT WORK_NAME, UNIT FROM WORKS WHERE WORK_ID = " + works.getInt("WORK_ID"));
-                    String workName = wrn.getString("WORK_NAME");
+                    String workName = "";
+                    if (works.getString("WORK_NOTE") != null) {
+                        workName = works.getString("WORK_NOTE");
+                    } else {
+                        workName = wrn.getString("WORK_NAME");
+                    }
                     String unit = wrn.getString("UNIT");
                     double count = works.getDouble("COUNT");
                     double price = works.getDouble("PRICE");

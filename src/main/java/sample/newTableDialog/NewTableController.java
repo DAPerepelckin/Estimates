@@ -13,17 +13,14 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import sample.PrintException;
 import sample.addContractors.AddContractorsController;
+import sample.contractorsWindow.ContractorsController;
 import sample.mainTable.Controller;
 import sample.welcomeWindow.WelcomeController;
 
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.io.PrintWriter;
+
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -36,10 +33,10 @@ public class NewTableController implements Initializable {
     public Button applyBtn;
     public TextField nameField;
     public ComboBox<Contractor> contractors;
-    private WelcomeController owner;
+    public WelcomeController owner;
     Preferences user = Preferences.userRoot();
     private ObservableList<Contractor> contractorsList = FXCollections.observableArrayList();
-    private Connection conn;
+    public Connection conn;
     public  int contrID;
 
     private class Contractor{
@@ -47,33 +44,53 @@ public class NewTableController implements Initializable {
         String name;
     }
 
+    public void setContractor(int id, String name){
+        Contractor contractor = new Contractor();
+        contractor.ID = id;
+        contractor.name = name;
 
-    public void setOwner(WelcomeController owner) {
-        this.owner = owner;
+        contractors.setConverter(new StringConverter<Contractor>() {
+            @Override
+            public String toString(Contractor object) {
+                return object.name;
+            }
+
+            @Override
+            public Contractor fromString(String string) {
+                return null;
+            }
+        });
+
+        contractors.setValue(contractor);
     }
-
-
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        try {
-            Class.forName("org.sqlite.JDBC");
-            String path = user.get("pathToDB", "");
-            if (path.isEmpty()) {
-                owner.loadFileBase(applyBtn.getScene().getWindow());
-            } else {
-                String URL = "jdbc:sqlite:" + path;
-                conn = DriverManager.getConnection(URL);
-            }
-            init();
-        }catch(Exception ex){PrintException.print(ex);}
-
-
+        contractors.setOnMouseClicked(event -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/contractorsWindow.fxml"));
+                AnchorPane addLayout = loader.load();
+                Scene secondScene = new Scene(addLayout);
+                Stage newWindow = new Stage();
+                newWindow.setScene(secondScene);
+                newWindow.setTitle("Заказчики");
+                newWindow.initModality(Modality.WINDOW_MODAL);
+                newWindow.initOwner(contractors.getScene().getWindow());
+                newWindow.centerOnScreen();
+                ContractorsController controller = loader.getController();
+                controller.conn = conn;
+                controller.deleteBtn.setVisible(false);
+                controller.searchLine.getProperties().put("pane-left-anchor", 135.0);
+                controller.owner = this;
+                controller.update("");
+                newWindow.showAndWait();
+            }catch (Exception ex){PrintException.print(ex);}
+        });
 
 
         cancelBtn.setOnAction(e->cancelBtn.getScene().getWindow().hide());
-        cancelBtn.setCancelButton(true);
-        applyBtn.setDefaultButton(true);
+
+
         applyBtn.setOnAction(e->{
 
             try {
@@ -100,7 +117,6 @@ public class NewTableController implements Initializable {
                         newWindow.showAndWait();
                     }else{contrID = contractors.getValue().ID;}
                     if(contrID!=-1){
-                        contractors.setValue(contractorsList.filtered(t->t.ID==contrID).get(0));
                         Statement statement = conn.createStatement();
                         Date date = new Date();
                         SimpleDateFormat formatForDateNow = new SimpleDateFormat("dd.MM.yyyy");
@@ -128,7 +144,7 @@ public class NewTableController implements Initializable {
         });
     }
     public void init(){
-        try {
+       /* try {
             ResultSet contractorRS = conn.createStatement().executeQuery("SELECT CONTRACTOR_ID, ORGANIZATION_NAME FROM CONTRACTORS");
             while (contractorRS.next()) {
                 Contractor contractor = new Contractor();
@@ -155,6 +171,6 @@ public class NewTableController implements Initializable {
             });
             contractors.setItems(contractorsList);
         }catch (Exception ex){
-            PrintException.print(ex);}
+            PrintException.print(ex);}*/
     }
 }

@@ -8,8 +8,9 @@ public class MainRow {
     private String price;
     private String sum;
     private String comment;
+    private int ID;
 
-    MainRow(Integer num,String name, String unit, String count, String price, String sum, String comment) {
+    MainRow(Integer num,String name, String unit, String count, String price, String sum, String comment, int ID) {
         this.num = num;
         this.name = name;
         this.unit = unit;
@@ -17,6 +18,15 @@ public class MainRow {
         this.price = price;
         this.sum = sum;
         this.comment = comment;
+        this.ID = ID;
+    }
+
+    public int getID() {
+        return ID;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     public Integer getNum() {

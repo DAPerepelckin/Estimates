@@ -22,6 +22,6 @@
    <Button fx:id="deleteBtn" focusTraversable="false" layoutX="408.0" layoutY="329.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Удалить" AnchorPane.bottomAnchor="80.0" AnchorPane.rightAnchor="15.0" />
    <Button fx:id="forBtn" focusTraversable="false" layoutX="405.0" layoutY="300.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="О смете" AnchorPane.bottomAnchor="115.0" AnchorPane.rightAnchor="15.0" />
    <Button fx:id="openBtn" focusTraversable="false" layoutX="350.0" layoutY="235.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Открыть" AnchorPane.bottomAnchor="150.0" AnchorPane.rightAnchor="15.0" />
-   <Button layoutX="405.0" layoutY="3.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Справка" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="15.0" />
-   <Button layoutX="350.0" layoutY="75.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Заказчики" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="85.0" />
+   <Button fx:id="refBtn" layoutX="405.0" focusTraversable="false" layoutY="3.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Справка" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="15.0" />
+   <Button fx:id="contractorsBtn" layoutX="350.0" focusTraversable="false" layoutY="75.0" minWidth="110.0" mnemonicParsing="false" prefWidth="110.0" text="Заказчики" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="85.0" />
 </AnchorPane>

@@ -14,10 +14,11 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import sample.PrintException;
+import sample.contractorsWindow.ContractorsController;
 import sample.forWindow.ForWindowController;
 import sample.mainTable.Controller;
 import sample.newTableDialog.NewTableController;
-
+import sample.opionsWindow.OptionsController;
 
 
 import java.io.*;
@@ -40,7 +41,9 @@ public class WelcomeController implements Initializable {
     public Button deleteBtn;
     public Button forBtn;
     public  Button openBtn;
+    public Button contractorsBtn;
     public AnchorPane welcomePane;
+    public Button refBtn;
     private Preferences user = Preferences.userRoot();
     public Connection conn;
 
@@ -54,6 +57,44 @@ public class WelcomeController implements Initializable {
         sumCol.setCellValueFactory(new PropertyValueFactory<>("sum"));
         archiveTable.setItems(collection.getRowList());
 
+        refBtn.setOnAction(event -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/referenceWindow.fxml"));
+                AnchorPane addLayout = loader.load();
+                Scene secondScene = new Scene(addLayout);
+                Stage newWindow = new Stage();
+                newWindow.setScene(secondScene);
+                newWindow.setTitle("Справка");
+                newWindow.initModality(Modality.WINDOW_MODAL);
+                newWindow.initOwner(contractorsBtn.getScene().getWindow());
+                newWindow.centerOnScreen();
+                newWindow.show();
+            }catch (Exception ex){PrintException.print(ex);}
+        });
+
+        contractorsBtn.setOnAction(event -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/contractorsWindow.fxml"));
+                AnchorPane addLayout = loader.load();
+                Scene secondScene = new Scene(addLayout);
+                Stage newWindow = new Stage();
+                newWindow.setScene(secondScene);
+                newWindow.setTitle("Заказчики");
+                newWindow.initModality(Modality.WINDOW_MODAL);
+                newWindow.initOwner(contractorsBtn.getScene().getWindow());
+                newWindow.centerOnScreen();
+                ContractorsController controller = loader.getController();
+                controller.conn = conn;
+                controller.apply.setText("ОК");
+                controller.apply.setOnAction(event1 -> controller.apply.getScene().getWindow().hide());
+                controller.deleteBtn.setVisible(true);
+                controller.searchLine.getProperties().put("pane-left-anchor", 255.0);
+                controller.append.setText("Добавить");
+                //controller.owner = this;
+                controller.update("");
+                newWindow.showAndWait();
+            }catch (Exception ex){PrintException.print(ex);}
+        });
 
         archiveTable.setOnKeyReleased(event -> {
             switch (event.getCode()){
@@ -71,19 +112,23 @@ public class WelcomeController implements Initializable {
 
         forBtn.setOnAction(event -> {
             try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/forWindow.fxml"));
-                AnchorPane addLayout = loader.load();
-                Scene secondScene = new Scene(addLayout);
-                Stage newWindow = new Stage();
-                newWindow.setScene(secondScene);
-                newWindow.setTitle("О смете");
-                newWindow.initModality(Modality.WINDOW_MODAL);
-                newWindow.initOwner(forBtn.getScene().getWindow());
-                newWindow.centerOnScreen();
-                ForWindowController controller = loader.getController();
-                controller.tableID = archiveTable.getSelectionModel().getSelectedItem().getId();
-                controller.conn = conn;
-                newWindow.show();
+                if(archiveTable.getSelectionModel().getSelectedItems().size()>0) {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/forWindow.fxml"));
+                    AnchorPane addLayout = loader.load();
+                    Scene secondScene = new Scene(addLayout);
+                    Stage newWindow = new Stage();
+                    newWindow.setScene(secondScene);
+                    newWindow.setTitle("О смете");
+                    newWindow.initModality(Modality.WINDOW_MODAL);
+                    newWindow.initOwner(forBtn.getScene().getWindow());
+                    newWindow.centerOnScreen();
+                    ForWindowController controller = loader.getController();
+                    controller.tableID = archiveTable.getSelectionModel().getSelectedItem().getId();
+                    controller.conn = conn;
+                    controller.load();
+                    newWindow.showAndWait();
+                    load(forBtn.getScene().getWindow());
+                }
             }catch (Exception ex){PrintException.print(ex);}
         });
 
@@ -98,9 +143,13 @@ public class WelcomeController implements Initializable {
                 newWindow.setTitle("Настройки");
                 newWindow.initModality(Modality.WINDOW_MODAL);
                 newWindow.initOwner(options.getScene().getWindow());
+                OptionsController controller = loader.getController();
+                controller.conn = conn;
+                controller.init();
                 //OptionsController controller = loader.getController();
                 newWindow.centerOnScreen();
-                newWindow.show();
+                newWindow.showAndWait();
+                load(options.getScene().getWindow());
             }catch (Exception ex){PrintException.print(ex);}
         });
 
@@ -127,14 +176,10 @@ public class WelcomeController implements Initializable {
                 newWindow.setTitle("Новая смета");
                 newWindow.initModality(Modality.WINDOW_MODAL);
                 newWindow.initOwner(newTableBtn.getScene().getWindow());
-                newWindow.setWidth(280);
-                newWindow.setHeight(160);
-                newWindow.setMinWidth(294);
-                newWindow.setMinHeight(168);
-                newWindow.setMaxWidth(330);
-                newWindow.setMaxHeight(276);
                 NewTableController controller = loader.getController();
-                controller.setOwner(this);
+                controller.owner = this;
+                controller.conn = conn;
+                controller.init();
                 newWindow.centerOnScreen();
                 newWindow.show();
             }catch (Exception ex){PrintException.print(ex);}
@@ -145,7 +190,6 @@ public class WelcomeController implements Initializable {
 
     public void close(){
         try {
-
             newTableBtn.getScene().getWindow().hide();
         }catch (Exception ex){PrintException.print(ex);}
     }
@@ -154,13 +198,13 @@ public class WelcomeController implements Initializable {
         try {
             collection.clear();
             Class.forName("org.sqlite.JDBC");
-            String path = user.get("path","");
+            String path = user.get("pathToDB","");
             File f = new File(path);
             if(path.isEmpty()||!f.exists()||f.isDirectory()){loadFileBase(owner);}else {
                 String URL = "jdbc:sqlite:" + path;
                 conn = DriverManager.getConnection(URL);
                 Statement statement = conn.createStatement();
-                ResultSet rs = statement.executeQuery("SELECT TABLE_ID,TABLE_NAME, TABLE_DATE,TRANSPORT,POGRUZ from TABLES");
+                ResultSet rs = statement.executeQuery("SELECT TABLE_ID,TABLE_NAME, TABLE_DATE,TRANSPORT,POGRUZ FROM TABLES");
                 while (rs.next()) {
                     int ID = rs.getInt("TABLE_ID");
                     double transport = rs.getDouble("TRANSPORT");
@@ -168,7 +212,7 @@ public class WelcomeController implements Initializable {
                     String name = rs.getString("TABLE_NAME");
                     String date = rs.getString("TABLE_DATE");
                     Statement st = conn.createStatement();
-                    ResultSet rs1 = st.executeQuery("SELECT PRICE,COUNT FROM MAIN_TABLE where TABLE_ID=" + ID + "");
+                    ResultSet rs1 = st.executeQuery("SELECT PRICE,COUNT FROM MAIN_TABLE WHERE TABLE_ID =" + ID);
                     double sum = 0.0;
                     while (rs1.next()) {
                         sum += rs1.getDouble("PRICE") * rs1.getDouble("COUNT");
@@ -176,53 +220,49 @@ public class WelcomeController implements Initializable {
                     sum = sum * (100 + transport + pogruz) / 100;
                     collection.add(new WelcomeRow(ID, date, name, new DecimalFormat("#0.00").format(sum)));
                 }
-                conn.close();
             }
             archiveTable.getSelectionModel().select(0);
         }catch (Exception ex){
+            PrintException.print(ex);
             loadFileBase(owner);
 
         }
     }
-    public void loadFileBase(Window owner){
+    private void loadFileBase(Window owner){
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("База данных не найдена");
         alert.setHeaderText("Укажите путь до файла базы данных");
-        alert.setContentText("smety.sqlite");
         Optional <ButtonType> opt = alert.showAndWait();
         if(opt.toString().equalsIgnoreCase("Optional.empty")){owner.hide();}else {
             FileChooser fileChooser = new FileChooser();
             File file = fileChooser.showOpenDialog(options.getScene().getWindow());
             if (file != null) {
-                user.put("path", file.getAbsolutePath());
+                user.put("pathToDB", file.getAbsolutePath());
             }
             load(owner);
+
         }
     }
     private void deleteEstimate(Window owner){
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Удаление строк");
-        alert.setHeaderText("Вы уверены что хотите удалить смету?");
-        alert.setContentText("Все содержимое удалится");
-        Optional<ButtonType> option = alert.showAndWait();
-        if(option.get()==ButtonType.OK) {
-            int index = archiveTable.getSelectionModel().getSelectedIndex();
-            int id = archiveTable.getItems().get(index).getId();
-            try {
-                Class.forName("org.sqlite.JDBC");
-                String path = user.get("pathToDB", "");
-                if (path.isEmpty()) {
-                    loadFileBase(owner);
-                } else {
-                    String URL = "jdbc:sqlite:" + path;
-                    Connection conn = DriverManager.getConnection(URL);
+        if(archiveTable.getSelectionModel().getSelectedItems().size()>0) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Удаление строк");
+            alert.setHeaderText("Вы уверены что хотите удалить смету?");
+            alert.setContentText("Все содержимое удалится");
+            Optional<ButtonType> option = alert.showAndWait();
+            if (option.get() == ButtonType.OK) {
+                int index = archiveTable.getSelectionModel().getSelectedIndex();
+                int id = archiveTable.getItems().get(index).getId();
+                try {
                     conn.createStatement().executeUpdate("DELETE FROM TABLES WHERE TABLE_ID = " + id);
                     conn.createStatement().executeUpdate("DELETE FROM MAIN_TABLE WHERE TABLE_ID = " + id);
                     conn.createStatement().executeUpdate("DELETE FROM GROUPS WHERE TABLE_ID = " + id);
                     conn.close();
                     load(owner);
+                } catch (Exception ex) {
+                    PrintException.print(ex);
                 }
-            } catch (Exception ex) {PrintException.print(ex);}
+            }
         }
     }
     private void openTable(WelcomeRow row){

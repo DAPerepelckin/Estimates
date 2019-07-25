@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="smety.sqlite" uuid="6746e027-ab89-4e42-8c72-14e5b8f9b704">
+    <data-source source="LOCAL" name="24.07.17.50.sqlite" uuid="5fd0fae1-b52c-47e9-b990-023c78686470">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
-      <auto-commit>false</auto-commit>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$USER_HOME$/Desktop/prog/Новая папка/smety.sqlite</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Downloads/24.07.17.50.sqlite</jdbc-url>
       <driver-properties>
         <property name="enable_load_extension" value="true" />
       </driver-properties>

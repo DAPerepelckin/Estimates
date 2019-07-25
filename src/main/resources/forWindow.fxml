@@ -7,12 +7,14 @@
 <?import javafx.scene.layout.AnchorPane?>
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.forWindow.ForWindowController">
-   <Button fx:id="cancelBtn" cancelButton="true" layoutX="534.0" layoutY="361.0" minWidth="70.0" mnemonicParsing="false" prefWidth="70.0" text="Отмена" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="15.0" />
-   <Button fx:id="okBtn" defaultButton="true" layoutX="457.0" layoutY="360.0" minWidth="70.0" mnemonicParsing="false" prefWidth="70.0" text="ОК" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="95.0" />
-   <Label layoutX="27.0" layoutY="14.0" text="Заказчик" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="15.0" />
-   <ComboBox fx:id="contractors" layoutX="15.0" layoutY="32.0" prefWidth="150.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="35.0" />
-   <TextField fx:id="addressField" layoutX="15.0" layoutY="60.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="70.0" />
-   <TextField fx:id="fioField" layoutX="14.0" layoutY="95.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="105.0" />
-   <Label layoutX="13.0" layoutY="130.0" text="Обьект" AnchorPane.leftAnchor="13.0" AnchorPane.topAnchor="140.0" />
-   <TextField fx:id="orgProfileField" layoutX="13.0" layoutY="157.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="160.0" />
+   <Button fx:id="cancelBtn" cancelButton="true" layoutX="535.0" layoutY="360.0" minWidth="70.0" mnemonicParsing="false" prefWidth="70.0" text="Отмена" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="15.0" />
+   <Button fx:id="okBtn" defaultButton="true" layoutX="455.0" layoutY="360.0" minWidth="70.0" mnemonicParsing="false" prefWidth="70.0" text="ОК" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="95.0" />
+   <Label layoutX="25.0" layoutY="15.0" text="Заказчик" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="65.0" />
+   <ComboBox fx:id="contractors" layoutX="15.0" layoutY="30.0" prefWidth="150.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="85.0" />
+   <TextField fx:id="addressField" editable="false" layoutX="15.0" layoutY="60.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="120.0" />
+   <TextField fx:id="fioField" editable="false" layoutX="15.0" layoutY="95.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="155.0" />
+   <Label layoutX="15.0" layoutY="130.0" text="Подрядчик" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="190.0" />
+   <TextField fx:id="orgProfileField" editable="false" layoutX="15.0" layoutY="155.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="210.0" />
+   <Label layoutX="15.0" layoutY="15.0" text="Объект" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="15.0" />
+   <TextField fx:id="nameField" layoutX="15.0" layoutY="32.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="35.0" />
 </AnchorPane>

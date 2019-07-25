@@ -24,12 +24,13 @@ public class NewWorkController implements Initializable {
     public TextField priceField;
     public TextField unitField;
     public Connection conn;
+    public int workID = -1;
 
-    private class Group{
+    public class Group{
         int id;
         String name;
     }
-    private ObservableList<Group> groupList = FXCollections.observableArrayList();
+    public ObservableList<Group> groupList = FXCollections.observableArrayList();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -77,7 +78,11 @@ public class NewWorkController implements Initializable {
                     double r = (rs.getInt("COUNT(N)") + 1);
                     r = r / 1000;
                     r = r + groups.getValue().id;
-                    conn.createStatement().executeUpdate("INSERT INTO WORKS(N, WORK_NAME, DEF_PRICE, UNIT) VALUES ('" + r + "','" + nameField.getText() + "',0.0,'" + unitField.getText() + "')");
+                    if(workID==-1) {
+                        conn.createStatement().executeUpdate("INSERT INTO WORKS(N, WORK_NAME, DEF_PRICE, UNIT) VALUES ('" + r + "','" + nameField.getText() + "',0.0,'" + unitField.getText() + "')");
+                    }else {
+                        conn.createStatement().executeUpdate("UPDATE WORKS SET N = '"+r+"', WORK_NAME = '"+nameField.getText()+"', DEF_PRICE = "+priceField.getText().replaceAll(",",".")+", UNIT = '"+unitField.getText()+"' WHERE WORK_ID = "+workID);
+                    }
                     applyBtn.getScene().getWindow().hide();
                 }
 

@@ -1,20 +1,23 @@
 package sample.mainTable;
 
+import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.KeyCode;
+import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import sample.Main;
 import sample.PrintException;
 import sample.addWindow.AddWindowController;
 import sample.deleteGroupWindow.deleteGroupController;
+import sample.forWindow.ForWindowController;
 import sample.newGroupWindow.NewGroupController;
 import sample.saveExcel.SaveExcel;
 import sample.welcomeWindow.WelcomeController;
@@ -23,9 +26,12 @@ import sample.welcomeWindow.WelcomeController;
 import java.net.URL;
 import java.sql.*;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.prefs.Preferences;
+
+import static javafx.scene.input.KeyCode.*;
 
 
 public class Controller implements Initializable {
@@ -54,21 +60,23 @@ public class Controller implements Initializable {
     public TableColumn<MainRow,String> colPrice;
     public TableColumn<MainRow,String> colSum;
     public TableColumn<MainRow,String> colCom;
+    public TableColumn<MainRow,Integer> columnID;
     public Label sumWork;
     public Label sumAll;
     public int ID;
     public VBox mainWindow;
     public Button forBtn;
+
     private Preferences user = Preferences.userRoot();
     private Savepoint[] saves = new Savepoint[50];
 
-
+    private boolean edit = false;
     private Connection conn;
 
     private MainCollection rowMainCollection = new MainCollection();
     private MainCollection costs = new MainCollection();
-    //private static final DataFormat SERIALIZED_MIME_TYPE = new DataFormat("application/x-java-serialized-object");
-
+    private static final DataFormat SERIALIZED_MIME_TYPE = new DataFormat("application/x-java-serialized-object");
+    private ArrayList<MainRow> selections = new ArrayList<>();
 
 
     @Override
@@ -88,10 +96,12 @@ public class Controller implements Initializable {
         columnPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         columnSum.setCellValueFactory(new PropertyValueFactory<>("sum"));
         columnComment.setCellValueFactory(new PropertyValueFactory<>("comment"));
+        columnID.setCellValueFactory(new PropertyValueFactory<>("ID"));
 
         columnCount.setCellFactory(TextFieldTableCell.forTableColumn());
         columnPrice.setCellFactory(TextFieldTableCell.forTableColumn());
         columnComment.setCellFactory(TextFieldTableCell.forTableColumn());
+        columnName.setCellFactory(TextFieldTableCell.forTableColumn());
 
         mainTable.setItems(rowMainCollection.getRowList());
         mainTable.requestFocus();
@@ -107,120 +117,157 @@ public class Controller implements Initializable {
         colCount.setCellFactory(TextFieldTableCell.forTableColumn());
         rashodTable.setItems(costs.getRowList());
 
-        forBtn.setOnAction(event -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/forWindow.fxml"));
-                AnchorPane addLayout = loader.load();
-                Scene secondScene = new Scene(addLayout);
-                Stage newWindow = new Stage();
-                newWindow.setScene(secondScene);
-                newWindow.setTitle("О смете");
-                newWindow.initModality(Modality.WINDOW_MODAL);
-                newWindow.initOwner(forBtn.getScene().getWindow());
-                newWindow.centerOnScreen();
-                newWindow.show();
-            }catch (Exception ex){PrintException.print(ex);}
+        mainTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+        mainTable.setRowFactory(tv -> {
+            TableRow<MainRow> row = new TableRow<>();
+
+            row.setOnDragDetected(event -> {
+                if (! row.isEmpty()) {
+                    save(conn,saves);
+                    Integer index = row.getIndex();
+
+                    selections.clear();
+
+                    ObservableList<MainRow> items = mainTable.getSelectionModel().getSelectedItems();
+
+                    selections.addAll(items);
+
+
+                    Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
+                    db.setDragView(row.snapshot(null, null));
+                    ClipboardContent cc = new ClipboardContent();
+                    cc.put(SERIALIZED_MIME_TYPE, index);
+                    db.setContent(cc);
+                    event.consume();
+                }
+            });
+
+            row.setOnDragOver(event -> {
+                Dragboard db = event.getDragboard();
+                if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+                    if (row.getIndex() != (Integer) db.getContent(SERIALIZED_MIME_TYPE)) {
+                        event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+                        event.consume();
+                    }
+                }
+            });
+
+            row.setOnDragDropped(event -> {
+                Dragboard db = event.getDragboard();
+
+                if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+
+                    int dropIndex;MainRow dI=null;
+
+                    if (row.isEmpty()) {
+                        dropIndex = mainTable.getItems().size() ;
+                    } else {
+                        dropIndex = row.getIndex();
+                        dI = mainTable.getItems().get(dropIndex);
+                    }
+                    int delta=0;
+                    if(dI!=null)
+                        while(selections.contains(dI)) {
+                            delta=1;
+                            --dropIndex;
+                            if(dropIndex<0) {
+                                dI=null;dropIndex=0;
+                                break;
+                            }
+                            dI = mainTable.getItems().get(dropIndex);
+                        }
+
+                    for(MainRow sI:selections) {
+                        mainTable.getItems().remove(sI);
+                    }
+
+                    if(dI!=null)
+                        dropIndex=mainTable.getItems().indexOf(dI)+delta;
+                    else if(dropIndex!=0)
+                        dropIndex=mainTable.getItems().size();
+
+
+
+                    mainTable.getSelectionModel().clearSelection();
+
+                    for(MainRow sI:selections) {
+                        mainTable.getItems().add(dropIndex, sI);
+                        mainTable.getSelectionModel().select(dropIndex);
+                        dropIndex++;
+
+                    }
+
+                    event.setDropCompleted(true);
+                    selections.clear();
+                    event.consume();
+                }
+            });
+            row.setOnDragDone(event ->updateNum());
+
+            return row ;
         });
 
 
 
         mainWindow.setOnKeyReleased(event->{
-            switch (event.getCode()){
-                case F7:
-                    closeWindow(mainWindow.getScene().getWindow()); break;
-                case DELETE:if(mainTable.getSelectionModel().getSelectedItem().getUnit().isEmpty()){
-                    deleteGroupAction();}else {
-                    deleteWorksAction();}break;
-                case F1: addAction();break;
-                case F2: newGroupAction();break;
-                case F3: deleteWorksAction();break;
-                case F4: deleteGroupAction();break;
-                case F5: clearAction();break;
-                case F6: saveAction();break;
-            }
-        });
-        mainWindow.setOnKeyPressed(event -> {
-            if(event.getCode()== KeyCode.Z&&event.isControlDown()){
-                try {
-                    back(conn,saves);
-                    update();
-                } catch (Exception ex) {PrintException.print(ex);}
-            }
-        });
-
-
-
-        mainTable.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-
-        /*
-        mainTable.setRowFactory(tv->{
-            TableRow<MainRow> row = new TableRow<>();
-
-            row.setOnDragDetected(e->{
-                if(!row.isEmpty()&&mainTable.getSelectionModel().getSelectedCells().size()==1){
-                    int index = row.getIndex();
-                    Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
-                    db.setDragView(row.snapshot(null,null));
-                    ClipboardContent cc = new ClipboardContent();
-                    cc.put(SERIALIZED_MIME_TYPE, index);
-                    db.setContent(cc);
-                    e.consume();
-                }else{
-                    mainTable.getSelectionModel().clearSelection();
-                }
-            });
-
-            row.setOnDragOver(e->{
-                Dragboard db = e.getDragboard();
-                if(db.hasContent(SERIALIZED_MIME_TYPE)){
-                    if(row.getIndex()!= (Integer) db.getContent(SERIALIZED_MIME_TYPE)) {
-                        e.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-                        e.consume();
-                    }
-                }
-            });
-
-            row.setOnDragDropped(e->{
-                Dragboard db = e.getDragboard();
-                if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-                    try {
-                        int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
-
-                        int dropIndex;
-                        if (row.isEmpty()) {
-                            dropIndex = mainTable.getItems().size();
+            if(!edit) {
+                switch (event.getCode()) {
+                    case ESCAPE:
+                        closeWindow(mainWindow.getScene().getWindow());
+                        break;
+                    case DELETE:
+                        if (mainTable.getSelectionModel().getSelectedItem().getUnit().isEmpty()) {
+                            deleteGroupAction();
                         } else {
-                            dropIndex = row.getIndex();
+                            deleteWorksAction();
                         }
-                        if (!mainTable.getItems().get(draggedIndex).getUnit().isEmpty() && !mainTable.getItems().get(dropIndex).getUnit().isEmpty()) {
-                            int draggedN = mainTable.getItems().get(draggedIndex).getNum();
-                            int dropN = mainTable.getItems().get(dropIndex).getNum();
+                        break;
+                }
+            }
+        });
 
-                            ResultSet rs = conn.createStatement().executeQuery("SELECT GROUP_ID FROM MAIN_TABLE WHERE N = " + draggedN + " AND TABLE_ID = " + ID);
-                            ResultSet rs1 = conn.createStatement().executeQuery("SELECT GROUP_ID FROM MAIN_TABLE WHERE N = " + dropN + " AND TABLE_ID = " + ID);
-                            int dragGroup = rs.getInt("GROUP_ID");
-                            int dropGroup = rs1.getInt("GROUP_ID");
-
-                            if (dragGroup == dropGroup) {
-                                conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET N = -1 WHERE N = " + draggedN + " AND TABLE_ID = " + ID);
-                                conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET N = " + draggedN + " WHERE N = " + dropN + " AND TABLE_ID = " + ID);
-                                conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET N = " + dropN + " WHERE N = -1 AND TABLE_ID = " + ID);
-
-                                MainRow draggedPerson = mainTable.getItems().remove(draggedIndex);
-                                mainTable.getItems().add(dropIndex, draggedPerson);
-
-                                e.setDropCompleted(true);
-                                mainTable.getSelectionModel().clearSelection();
-                                e.consume();
-                            }
-                        }
-                        }catch(Exception ex){ex.printStackTrace();
+        mainWindow.setOnKeyPressed(event -> {
+            if(!edit) {
+                if (event.isControlDown()) {
+                    if (event.getCode().getName().equalsIgnoreCase(user.get("addWorkKey", "W"))) {
+                        addAction();
+                    }
+                    if (event.getCode().getName().equalsIgnoreCase(user.get("addGroupKey", "G"))) {
+                        newGroupAction();
+                    }
+                    if (event.getCode().getName().equalsIgnoreCase(user.get("clearKey", "P"))) {
+                        clearAction();
+                    }
+                    if (event.getCode().getName().equalsIgnoreCase(user.get("saveKey", "S"))) {
+                        saveAction();
+                    }
+                    if (event.getCode().getName().equalsIgnoreCase("Z")) {
+                        back(conn, saves);
+                        update();
+                    }
+                    if (event.getCode().getName().equalsIgnoreCase(user.get("forKey", "F"))) {
+                        forBtnAction();
                     }
                 }
-            });
-           return row;
+            }
+            if(!edit) {
+                if (event.getCode() == Z && event.isControlDown()) {
+                    try {
+                        back(conn, saves);
+                        update();
+                    } catch (Exception ex) {
+                        PrintException.print(ex);
+                    }
+                }
+            }
         });
-        */
+
+
+
+
+
+
 
         createBtn.setOnAction(e->newGroupAction());
         clearBtn.setOnAction(e->clearAction());
@@ -229,13 +276,41 @@ public class Controller implements Initializable {
         closeBtn.setOnAction(e->closeWindow(closeBtn.getScene().getWindow()));
         saveBtn.setOnAction(e->saveAction());
         addBtn.setOnAction(e->addAction());
+        forBtn.setOnAction(e->forBtnAction());
 
+        createBtn.setTooltip(new Tooltip("Ctrl+"+user.get("addGroupKey","G")));
+        clearBtn.setTooltip(new Tooltip("Ctrl+"+user.get("clearKey","P")));
+        deleteGroupBtn.setTooltip(new Tooltip("Delete"));
+        deleteBtn.setTooltip(new Tooltip("Delete"));
+        closeBtn.setTooltip(new Tooltip("Escape"));
+        saveBtn.setTooltip(new Tooltip("Ctrl+"+user.get("saveKey","S")));
+        addBtn.setTooltip(new Tooltip("Ctrl+"+user.get("addWorkKey","W")));
+        forBtn.setTooltip(new Tooltip("Ctrl+"+user.get("forKey","F")));
 
     }
 
     private void saveAction(){
         try {
             new SaveExcel().saveEstimateExcel(conn, ID, saveBtn.getScene().getWindow());
+        }catch (Exception ex){PrintException.print(ex);}
+    }
+
+    private void forBtnAction(){
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/forWindow.fxml"));
+            AnchorPane addLayout = loader.load();
+            Scene secondScene = new Scene(addLayout);
+            Stage newWindow = new Stage();
+            newWindow.setScene(secondScene);
+            newWindow.setTitle("О смете");
+            newWindow.initModality(Modality.WINDOW_MODAL);
+            newWindow.initOwner(forBtn.getScene().getWindow());
+            newWindow.centerOnScreen();
+            ForWindowController controller = loader.getController();
+            controller.tableID = ID;
+            controller.conn = conn;
+            newWindow.show();
+            controller.load();
         }catch (Exception ex){PrintException.print(ex);}
     }
 
@@ -293,7 +368,6 @@ public class Controller implements Initializable {
             Optional<ButtonType> option = alert.showAndWait();
             if (option.get() == ButtonType.OK) {
                 try {
-
                     save(conn,saves);
                     int index = mainTable.getSelectionModel().getSelectedItem().getNum();
                     conn.createStatement().executeUpdate("DELETE FROM MAIN_TABLE WHERE TABLE_ID = " + ID + " AND N = " + index);
@@ -398,24 +472,30 @@ public class Controller implements Initializable {
 
             while (rsGroup.next()){
                 double s = 0.0;
-                rowMainCollection.add(new MainRow(rsGroup.getInt("GROUP_ID"),rsGroup.getString("GROUP_NAME"),"","","","",""));
-                ResultSet rs = conn.createStatement().executeQuery("SELECT WORK_ID, N, COUNT, PRICE FROM MAIN_TABLE WHERE GROUP_ID = "+rsGroup.getInt("GROUP_ID")+" ORDER BY N");
+                rowMainCollection.add(new MainRow(rsGroup.getInt("GROUP_ID"),rsGroup.getString("GROUP_NAME"),"","","","","",0));
+                ResultSet rs = conn.createStatement().executeQuery("SELECT WORK_ID, N, COUNT, PRICE, WORK_NOTE, STRING_ID FROM MAIN_TABLE WHERE GROUP_ID = "+rsGroup.getInt("GROUP_ID")+" ORDER BY N");
                 while (rs.next()){
                     ResultSet rs1 = conn.createStatement().executeQuery("SELECT WORK_NAME, UNIT FROM WORKS WHERE WORK_ID = "+rs.getInt("WORK_ID"));
                     int num = rs.getInt("N");
-                    String name = rs1.getString("WORK_NAME");
+                    String name = "";
+                    if(rs.getString("WORK_NOTE")==null) {
+                        name = rs1.getString("WORK_NAME");
+                    }else{
+                        name = rs.getString("WORK_NOTE");
+                    }
                     String unit = rs1.getString("UNIT");
                     double count = rs.getDouble("COUNT");
                     double price = rs.getDouble("PRICE");
                     double sum = count*price;
+                    int ID = rs.getInt("STRING_ID");
                     String count1 = new DecimalFormat("#0.00").format(count);
                     String price1 = new DecimalFormat("#0.00").format(price);
                     String sum1 = new DecimalFormat("#0.00").format(sum);
                     s+=sum;
-                    rowMainCollection.add(new MainRow(num,name,unit,count1,price1,sum1,""));
+                    rowMainCollection.add(new MainRow(num,name,unit,count1,price1,sum1,"",ID));
                 }
                 String groupSum = new DecimalFormat("#0.00").format(s);
-                rowMainCollection.add(new MainRow(null,"","","","",groupSum,""));
+                rowMainCollection.add(new MainRow(null,"","","","",groupSum,"",0));
             }
             ResultSet sum1 = conn.createStatement().executeQuery("SELECT COUNT,PRICE FROM MAIN_TABLE WHERE TABLE_ID = "+ID);
             double sum1Work=0.0;
@@ -432,8 +512,8 @@ public class Controller implements Initializable {
             double price1 =sum1Work/100;
             String s1 = "Транспортные расходы";
             String s2 = "Погрузочно-разгрузочные расходы";
-            costs.add(new MainRow(null,s1,"%",new DecimalFormat("#0.00").format(count1),new DecimalFormat("#0.00").format(price1),new DecimalFormat("#0.00").format(count1*price1),""));
-            costs.add(new MainRow(null,s2,"%",new DecimalFormat("#0.00").format(count2),new DecimalFormat("#0.00").format(price1),new DecimalFormat("#0.00").format(count2*price1),""));
+            costs.add(new MainRow(null,s1,"%",new DecimalFormat("#0.00").format(count1),new DecimalFormat("#0.00").format(price1),new DecimalFormat("#0.00").format(count1*price1),"", 0));
+            costs.add(new MainRow(null,s2,"%",new DecimalFormat("#0.00").format(count2),new DecimalFormat("#0.00").format(price1),new DecimalFormat("#0.00").format(count2*price1),"",0));
 
             String s3 = "Итого по работам:  ";
             sumWork.setText(s3+ new DecimalFormat("#0.00").format(sum1Work));
@@ -448,7 +528,7 @@ public class Controller implements Initializable {
 
 
     public void onEditChanged2(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
-        if(mainRowStringCellEditEvent.getNewValue().matches("-?\\d+(\\.\\d+)?")) {
+        if(mainRowStringCellEditEvent.getNewValue().replaceAll(",",".").matches("-?\\d+(\\.\\d+)?")) {
             try {
                 save(conn,saves);
                 if (mainRowStringCellEditEvent.getTableColumn().getText().equalsIgnoreCase("Кол-во")) {
@@ -461,11 +541,18 @@ public class Controller implements Initializable {
                 }
             } catch (Exception ex) {PrintException.print(ex);}
         }
+        edit = false;
         update();
     }
 
     public void onEditChanged(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
-        if(mainRowStringCellEditEvent.getNewValue().matches("-?\\d+(\\.\\d+)?")) {
+        try {
+            if (mainRowStringCellEditEvent.getTableColumn().getText().equalsIgnoreCase("Наименование")) {
+                conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET WORK_NOTE = '" + mainRowStringCellEditEvent.getNewValue() + "' WHERE TABLE_ID = " + ID + " AND N = " + mainRowStringCellEditEvent.getRowValue().getNum());
+            }
+        }catch (Exception ex){PrintException.print(ex);}
+
+        if(mainRowStringCellEditEvent.getNewValue().replaceAll(",",".").matches("-?\\d+(\\.\\d+)?")) {
             try {
                 save(conn,saves);
                 if (mainRowStringCellEditEvent.getTableColumn().getText().equalsIgnoreCase("Цена")) {
@@ -473,22 +560,49 @@ public class Controller implements Initializable {
                 }
                 if (mainRowStringCellEditEvent.getTableColumn().getText().equalsIgnoreCase("Кол-во")) {
                     conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET COUNT = " + mainRowStringCellEditEvent.getNewValue().replaceAll(",", ".") + " WHERE TABLE_ID = " + ID + " AND N = " + mainRowStringCellEditEvent.getRowValue().getNum());
-
                 }
+
             } catch (Exception ex) {PrintException.print(ex);}
         }
+        edit = false;
         update();
 
     }
 
-    private void save(Connection conn,Savepoint[] saves) throws Exception {
-        if (saves.length - 1 >= 0) System.arraycopy(saves, 0, saves, 1, saves.length - 1);
-        saves[0] = conn.setSavepoint();
+    private void save(Connection conn,Savepoint[] saves) {
+        try {
+            if (saves.length - 1 >= 0) System.arraycopy(saves, 0, saves, 1, saves.length - 1);
+            saves[0] = conn.setSavepoint();
+        }catch (Exception ex){PrintException.print(ex);}
     }
-    private void back(Connection conn, Savepoint[] saves)throws Exception {
-        if(saves[0]!=null){
-            conn.rollback(saves[0]);
-            System.arraycopy(saves, 1, saves, 0, saves.length - 1);
-        }
+    private void back(Connection conn, Savepoint[] saves) {
+        try {
+            if (saves[0] != null) {
+                conn.rollback(saves[0]);
+                System.arraycopy(saves, 1, saves, 0, saves.length - 1);
+            }
+        }catch (Exception ex){PrintException.print(ex);}
+    }
+    private void updateNum(){
+        try {
+            conn.createStatement();
+            for(int i=0;i<mainTable.getItems().size();i++){
+                if(!mainTable.getItems().get(i).getUnit().isEmpty()){
+                    conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET N = "+i+ " WHERE STRING_ID = "+mainTable.getItems().get(i).getID());
+                }
+            }
+
+            update();
+
+
+        }catch (Exception ex){PrintException.print(ex);}
+    }
+
+    public void onEditCancel(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
+        edit = false;
+    }
+
+    public void onEditStart(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
+        edit = true;
     }
 }

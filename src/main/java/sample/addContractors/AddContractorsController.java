@@ -21,6 +21,7 @@ public class AddContractorsController implements Initializable {
     public NewTableController owner;
     public Connection conn;
     public Button cancelBtn;
+    public int contrID = -1;
 
 
     @Override
@@ -28,13 +29,20 @@ public class AddContractorsController implements Initializable {
         applyBtn.setOnAction(e->{
             try {
                 if(!nameField.getText().isEmpty()&&!fioField.getText().isEmpty()&&!positionField.getText().isEmpty()&&!addressField.getText().isEmpty()) {
-                    if(OKPOField.getText().isEmpty()){
-                        conn.createStatement().executeUpdate("INSERT INTO CONTRACTORS(POSITION, FIO, ORGANIZATION_NAME, ADDRESS, OKPO) VALUES ('"+positionField.getText()+"','"+fioField.getText()+"','"+nameField.getText()+"','"+addressField.getText()+"',null)");
-                    }else {
-                        conn.createStatement().executeUpdate("INSERT INTO CONTRACTORS(POSITION, FIO, ORGANIZATION_NAME, ADDRESS, OKPO) VALUES ('" + positionField.getText() + "','" + fioField.getText() + "','" + nameField.getText() + "','" + addressField.getText() + "'," + OKPOField.getText() + ")");
+
+                    if(contrID==-1) {
+                        if (OKPOField.getText().isEmpty()) {
+                            conn.createStatement().executeUpdate("INSERT INTO CONTRACTORS(POSITION, FIO, ORGANIZATION_NAME, ADDRESS, OKPO) VALUES ('" + positionField.getText() + "','" + fioField.getText() + "','" + nameField.getText() + "','" + addressField.getText() + "',null)");
+                        } else {
+                            conn.createStatement().executeUpdate("INSERT INTO CONTRACTORS(POSITION, FIO, ORGANIZATION_NAME, ADDRESS, OKPO) VALUES ('" + positionField.getText() + "','" + fioField.getText() + "','" + nameField.getText() + "','" + addressField.getText() + "'," + OKPOField.getText() + ")");
+                        }
+                    }else{
+                        if (OKPOField.getText().isEmpty()) {
+                            conn.createStatement().executeUpdate("UPDATE CONTRACTORS SET POSITION = '" + positionField.getText() + "', FIO = '" + fioField.getText() + "', ORGANIZATION_NAME = '" + nameField.getText() + "', ADDRESS = '" + addressField.getText() + "', OKPO = null WHERE CONTRACTOR_ID = " + contrID);
+                        }else{
+                            conn.createStatement().executeUpdate("UPDATE CONTRACTORS SET POSITION = '" + positionField.getText() + "', FIO = '" + fioField.getText() + "', ORGANIZATION_NAME = '" + nameField.getText() + "', ADDRESS = '" + addressField.getText() + "', OKPO = "+OKPOField.getText()+" WHERE CONTRACTOR_ID = " + contrID);
+                        }
                     }
-                    owner.init();
-                    owner.contrID = conn.createStatement().executeQuery("SELECT seq FROM sqlite_sequence WHERE name = 'CONTRACTORS'").getInt("seq");
                     applyBtn.getScene().getWindow().hide();
                 }else{
                     Alert alert = new Alert(Alert.AlertType.WARNING);
