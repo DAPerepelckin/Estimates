@@ -1,7 +1,5 @@
 package sample.newTableDialog;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
@@ -26,7 +24,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.ResourceBundle;
-import java.util.prefs.Preferences;
+
 
 public class NewTableController implements Initializable {
     public Button cancelBtn;
@@ -34,10 +32,8 @@ public class NewTableController implements Initializable {
     public TextField nameField;
     public ComboBox<Contractor> contractors;
     public WelcomeController owner;
-    Preferences user = Preferences.userRoot();
-    private ObservableList<Contractor> contractorsList = FXCollections.observableArrayList();
     public Connection conn;
-    public  int contrID;
+    private int contrID;
 
     private class Contractor{
         int ID;
@@ -128,6 +124,7 @@ public class NewTableController implements Initializable {
                         Statement st = conn.createStatement();
                         ResultSet rs = st.executeQuery("SELECT seq FROM sqlite_sequence WHERE name = 'TABLES'");
                         controller.ID = rs.getInt("seq");
+                        rs.close();
                         Scene secondScene = new Scene(addLayout);
                         Stage newWindow = new Stage();
                         newWindow.setScene(secondScene);
@@ -137,40 +134,9 @@ public class NewTableController implements Initializable {
                         applyBtn.getScene().getWindow().hide();
                         owner.close();
                     }
-                    conn.close();
                 }
             }catch (Exception ex){PrintException.print(ex);}
 
         });
-    }
-    public void init(){
-       /* try {
-            ResultSet contractorRS = conn.createStatement().executeQuery("SELECT CONTRACTOR_ID, ORGANIZATION_NAME FROM CONTRACTORS");
-            while (contractorRS.next()) {
-                Contractor contractor = new Contractor();
-                contractor.ID = contractorRS.getInt("CONTRACTOR_ID");
-                contractor.name = contractorRS.getString("ORGANIZATION_NAME");
-                contractorsList.add(contractor);
-            }
-            Contractor contractor = new Contractor();
-            contractor.ID = 0;
-            contractor.name = "Добавить заказчика";
-            contractorsList.add(contractor);
-
-
-            contractors.setConverter(new StringConverter<Contractor>() {
-                @Override
-                public String toString(Contractor object) {
-                    return object.name;
-                }
-
-                @Override
-                public Contractor fromString(String string) {
-                    return null;
-                }
-            });
-            contractors.setItems(contractorsList);
-        }catch (Exception ex){
-            PrintException.print(ex);}*/
     }
 }

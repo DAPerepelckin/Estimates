@@ -3,6 +3,7 @@ sample\loadWorkBase\LoadWorksBase.class
 sample\newTableDialog\NewTableController$1.class
 sample\opionsWindow\OptionsController$Profile.class
 sample\addContractors\AddContractorsController.class
+sample\deleteGroupWindow\deleteGroupController$Group.class
 sample\forWindow\ForWindowController$1.class
 sample\welcomeWindow\WelcomeRow.class
 sample\welcomeWindow\WelcomeController.class
@@ -17,6 +18,7 @@ sample\saveExcel\SaveExcel.class
 sample\opionsWindow\OptionsController$1.class
 sample\workBaseWindow\WorkRow.class
 sample\opionsWindow\OptionsController.class
+sample\addWindow\AddWindowController$Group.class
 sample\Styles.class
 sample\mainTable\MainRow.class
 sample\welcomeWindow\WelcomeController$1.class
@@ -36,3 +38,5 @@ sample\newWorkWindow\NewWorkController$Group.class
 sample\newWorkWindow\NewWorkController.class
 sample\forWindow\ForWindowController$Contractor.class
 sample\welcomeWindow\WelcomeCollection.class
+sample\addWindow\AddWindowController$1.class
+sample\deleteGroupWindow\deleteGroupController$1.class

@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.util.StringConverter;
 import sample.PrintException;
 import sample.mainTable.Controller;
 
@@ -15,13 +16,13 @@ import java.util.ResourceBundle;
 
 
 public class deleteGroupController implements Initializable {
-    public ComboBox groups;
+    public ComboBox<Group> groups;
     public Button cancelBtn;
     public Button applyBtn;
     public Connection conn;
     public int ID;
     public Controller owner;
-    private ObservableList[] groupList = new ObservableList[2];
+    private ObservableList<Group> groupList = FXCollections.observableArrayList();
 
 
     @Override
@@ -30,26 +31,42 @@ public class deleteGroupController implements Initializable {
 
         applyBtn.setOnAction(e->{
             try {
-                conn.createStatement().executeUpdate("DELETE FROM GROUPS WHERE GROUP_ID = " + groupList[1].get(groups.getSelectionModel().getSelectedIndex()));
-                conn.createStatement().executeUpdate("DELETE FROM MAIN_TABLE WHERE GROUP_ID = "+groupList[1].get(groups.getSelectionModel().getSelectedIndex()));
+                conn.createStatement().executeUpdate("DELETE FROM GROUPS WHERE GROUP_ID = " + groups.getValue().groupID);
+                conn.createStatement().executeUpdate("DELETE FROM MAIN_TABLE WHERE GROUP_ID = "+ groups.getValue().groupID);
                 owner.update();
                 applyBtn.getScene().getWindow().hide();
             }catch (Exception ex){
                 PrintException.print(ex);}
         });
     }
+    private class Group{
+        int groupID;
+        String groupName;
+
+        Group(int groupID, String groupName) {
+            this.groupID = groupID;
+            this.groupName = groupName;
+        }
+    }
     public void load() {
         try {
             ResultSet rs = this.conn.createStatement().executeQuery("SELECT GROUP_NAME, GROUP_ID FROM GROUPS where TABLE_ID = " + ID);
-            this.groupList[0] = FXCollections.observableArrayList();
-            this.groupList[1] = FXCollections.observableArrayList();
-
             while(rs.next()) {
-                this.groupList[0].add(rs.getString("GROUP_NAME"));
-                this.groupList[1].add(rs.getInt("GROUP_ID"));
+                groupList.add(new Group(rs.getInt("GROUP_ID"),rs.getString("GROUP_NAME")));
             }
+            rs.close();
+            groups.setItems(groupList);
+            groups.setConverter(new StringConverter<Group>() {
+                @Override
+                public String toString(Group object) {
+                    return object.groupName;
+                }
 
-            this.groups.setItems(this.groupList[0]);
+                @Override
+                public Group fromString(String string) {
+                    return null;
+                }
+            });
         } catch (Exception ex) {PrintException.print(ex);}
 
     }

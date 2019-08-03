@@ -134,21 +134,25 @@ public class WorkBaseController implements Initializable {
                     Optional<ButtonType> option = alert.showAndWait();
                     if (option.get() == ButtonType.OK) {
                         ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(WORK_ID) FROM MAIN_TABLE WHERE WORK_ID = "+workList.getSelectionModel().getSelectedItem().getId());
-                        if(rs.getInt("COUNT(WORK_ID)")==0) {
+                        int count = rs.getInt("COUNT(WORK_ID)");
+                        rs.close();
+                        if(count==0) {
                             conn.createStatement().executeUpdate("DELETE FROM WORKS WHERE WORK_ID = " + workList.getSelectionModel().getSelectedItem().getId());
                             update("");
                         }else{
                             ResultSet rs2 = conn.createStatement().executeQuery("SELECT TABLE_ID FROM MAIN_TABLE WHERE WORK_ID = "+workList.getSelectionModel().getSelectedItem().getId());
-                            String s ="";
+                            StringBuilder s = new StringBuilder();
                             while(rs2.next()){
                                 ResultSet rs3 = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM TABLES WHERE TABLE_ID = "+rs2.getInt("TABLE_ID"));
-                                s=s+rs3.getString("TABLE_NAME")+", ";
+                                s.append(rs3.getString("TABLE_NAME")).append(", ");
+                                rs3.close();
                             }
-                            s = s.substring(0,s.length()-2);
+                            rs2.close();
+                            s = new StringBuilder(s.substring(0, s.length() - 2));
                             alert = new Alert(Alert.AlertType.WARNING);
                             alert.setTitle("Работа используется в сметах");
                             alert.setHeaderText("Работа, которую вы хотите удалить, используется в сметах:");
-                            alert.setContentText(s);
+                            alert.setContentText(s.toString());
                             alert.show();
                         }
                     }
@@ -169,6 +173,7 @@ public class WorkBaseController implements Initializable {
                 String unit = rs.getString("UNIT");
                 if(num.toLowerCase().contains(search.toLowerCase())||name.toLowerCase().contains(search.toLowerCase()))list.add(new WorkRow(id,num, name, price, unit));
             }
+            rs.close();
             workList.getSelectionModel().select(0);
         } catch (Exception ex) {
             PrintException.print(ex);}

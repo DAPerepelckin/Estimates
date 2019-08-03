@@ -1,6 +1,8 @@
 package sample.welcomeWindow;
 
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
@@ -13,6 +15,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.Duration;
 import sample.PrintException;
 import sample.contractorsWindow.ContractorsController;
 import sample.forWindow.ForWindowController;
@@ -179,7 +182,6 @@ public class WelcomeController implements Initializable {
                 NewTableController controller = loader.getController();
                 controller.owner = this;
                 controller.conn = conn;
-                controller.init();
                 newWindow.centerOnScreen();
                 newWindow.show();
             }catch (Exception ex){PrintException.print(ex);}
@@ -203,6 +205,22 @@ public class WelcomeController implements Initializable {
             if(path.isEmpty()||!f.exists()||f.isDirectory()){loadFileBase(owner);}else {
                 String URL = "jdbc:sqlite:" + path;
                 conn = DriverManager.getConnection(URL);
+                ResultSet old = conn.createStatement().executeQuery("SELECT VERSION FROM VERSION");
+                String ver = old.getString("VERSION");
+                old.close();
+                if(!ver.equalsIgnoreCase("25.07.11.20")) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setHeaderText("База данных устарела");
+                    alert.setTitle("База данных устарела");
+                    Timeline timeline = new Timeline(
+                            new KeyFrame(
+                                    Duration.millis(1500),
+                                    event -> alert.close()
+                            )
+                    );
+                    timeline.play();
+                    alert.showAndWait();
+                }
                 Statement statement = conn.createStatement();
                 ResultSet rs = statement.executeQuery("SELECT TABLE_ID,TABLE_NAME, TABLE_DATE,TRANSPORT,POGRUZ FROM TABLES");
                 while (rs.next()) {
@@ -217,14 +235,30 @@ public class WelcomeController implements Initializable {
                     while (rs1.next()) {
                         sum += rs1.getDouble("PRICE") * rs1.getDouble("COUNT");
                     }
+                    rs1.close();
                     sum = sum * (100 + transport + pogruz) / 100;
                     collection.add(new WelcomeRow(ID, date, name, new DecimalFormat("#0.00").format(sum)));
                 }
+                rs.close();
             }
             archiveTable.getSelectionModel().select(0);
         }catch (Exception ex){
-            PrintException.print(ex);
-            loadFileBase(owner);
+            if(ex.getMessage().equalsIgnoreCase("[SQLITE_ERROR] SQL error or missing database (no such table: VERSION)")) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setHeaderText("База данных устарела");
+                alert.setTitle("База данных устарела");
+                Timeline timeline = new Timeline(
+                        new KeyFrame(
+                                Duration.millis(1500),
+                                event -> alert.close()
+                        )
+                );
+                timeline.play();
+                alert.showAndWait();
+            }else {
+                PrintException.print(ex);
+                loadFileBase(owner);
+            }
 
         }
     }

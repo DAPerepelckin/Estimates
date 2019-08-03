@@ -6,6 +6,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ResourceBundle;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
@@ -16,6 +19,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Duration;
+import javafx.util.StringConverter;
 import sample.PrintException;
 import sample.mainTable.Controller;
 import sample.newGroupWindow.NewGroupController;
@@ -31,11 +36,11 @@ public class AddWindowController implements Initializable {
     public TextField priceField;
     public int tableID;
     public Controller owner;
-    public ComboBox<String> groups;
+    public ComboBox<Group> groups;
     public AnchorPane addWindowPane;
     private int workID;
     public Connection conn;
-    private ObservableList[] groupList = new ObservableList[2];
+    private ObservableList<Group> groupList = FXCollections.observableArrayList();
     public boolean gr = true;
 
 
@@ -93,7 +98,7 @@ public class AddWindowController implements Initializable {
     private void add(){
         try {
             gr = true;
-            if(groups.getSelectionModel().getSelectedItem().equalsIgnoreCase("Новая группа")){
+            if(groups.getValue().groupName.equalsIgnoreCase("Новая группа")){
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/newGroupWindow.fxml"));
                 AnchorPane addLayout = loader.load();
                 Scene secondScene = new Scene(addLayout);
@@ -109,40 +114,79 @@ public class AddWindowController implements Initializable {
                 newWindow.centerOnScreen();
                 gr = false;
                 newWindow.showAndWait();
-                ResultSet rs = conn.createStatement().executeQuery("SELECT MAX(GROUP_ID) FROM GROUPS WHERE TABLE_ID = "+tableID);
-                ResultSet groupName = conn.createStatement().executeQuery("SELECT GROUP_NAME FROM GROUPS WHERE GROUP_ID = "+rs.getInt("MAX(GROUP_ID)")+" AND TABLE_ID = "+ tableID);
-                groups.setValue(groupName.getString("GROUP_NAME"));
+                ResultSet rs = conn.createStatement().executeQuery("SELECT seq FROM sqlite_sequence WHERE name = 'GROUPS'");
+                int max = rs.getInt("seq");
+                rs.close();
+                ResultSet groupName = conn.createStatement().executeQuery("SELECT GROUP_NAME FROM GROUPS WHERE GROUP_ID = "+max+" AND TABLE_ID = "+ tableID);
+                groups.setValue(groups.getItems().filtered(t->t.groupID==max).get(0));
+                groupName.close();
             }
             if(gr) {
                 Statement st = conn.createStatement();
                 ResultSet rs1 = st.executeQuery("SELECT MAX(N) FROM MAIN_TABLE where TABLE_ID = " + tableID);
                 int max = rs1.getInt("MAX(N)") + 1;
+                rs1.close();
                 Statement statement = conn.createStatement();
                 int index = groups.getSelectionModel().getSelectedIndex();
-                statement.executeUpdate("insert into MAIN_TABLE(TABLE_ID, WORK_ID, N, COUNT, PRICE,GROUP_ID) VALUES ( " + tableID + ", " + workID + ", " + max + ", " + countField.getText().replaceAll(",", ".") + ", " + priceField.getText().replaceAll(",", ".") + ", " + groupList[1].get(index) + " )");
+
+                ResultSet rs2 = conn.createStatement().executeQuery("SELECT WORK_ID FROM MAIN_TABLE WHERE GROUP_ID = "+ groupList.get(index).groupID+" AND WORK_ID = "+workID);
+                if(rs2.next()){
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setHeaderText("Работа уже есть в выбранной группе");
+                    alert.setTitle("Работа уже есть в выбранной группе");
+                    Timeline timeline = new Timeline(
+                            new KeyFrame(
+                                    Duration.millis(2000),
+                                    event -> alert.close()
+                            )
+                    );
+                    timeline.play();
+                    alert.showAndWait();
+
+                }
+                rs2.close();
+                statement.executeUpdate("INSERT INTO MAIN_TABLE(TABLE_ID, WORK_ID, N, COUNT, PRICE,GROUP_ID) VALUES ( " + tableID + ", " + workID + ", " + max + ", " + countField.getText().replaceAll(",", ".") + ", " + priceField.getText().replaceAll(",", ".") + ", " + groupList.get(index).groupID + " )");
                 owner.update();
                 applyBtn.getScene().getWindow().hide();
             }
         } catch (Exception ex) {PrintException.print(ex);}
 
     }
+    private class Group{
+        int groupID;
+        String groupName;
+
+        Group(int groupID, String groupName) {
+            this.groupID = groupID;
+            this.groupName = groupName;
+        }
+    }
 
     public void load() {
 
         try {
             ResultSet rs = this.conn.createStatement().executeQuery("SELECT GROUP_NAME, GROUP_ID FROM GROUPS where TABLE_ID = " + this.tableID);
-            this.groupList[0] = FXCollections.observableArrayList();
-            this.groupList[1] = FXCollections.observableArrayList();
 
-            groupList[0].add("Новая группа");
-            groupList[1].add("");
+            groupList.add(new Group(0,"Новая группа"));
 
             while(rs.next()) {
-                this.groupList[0].add(rs.getString("GROUP_NAME"));
-                this.groupList[1].add(rs.getInt("GROUP_ID"));
+                groupList.add(new Group(rs.getInt("GROUP_ID"),rs.getString("GROUP_NAME")));
             }
+            rs.close();
+            groups.setItems(groupList);
 
-            this.groups.setItems(this.groupList[0]);
+            groups.setConverter(new StringConverter<Group>() {
+                @Override
+                public String toString(Group object) {
+                    return object.groupName;
+                }
+
+                @Override
+                public Group fromString(String string) {
+                    return null;
+                }
+            });
+
         } catch (Exception ex) {PrintException.print(ex);}
 
     }

@@ -1,7 +1,6 @@
 package sample.forWindow;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
@@ -97,14 +96,16 @@ public class ForWindowController implements Initializable {
     public void load(){
         try{
             ResultSet rs = conn.createStatement().executeQuery("SELECT CONTRACTORS_ID FROM TABLES WHERE TABLE_ID = "+tableID);
-            ResultSet rs1 = conn.createStatement().executeQuery("SELECT CONTRACTOR_ID, POSITION, FIO, ORGANIZATION_NAME, ADDRESS FROM CONTRACTORS WHERE CONTRACTOR_ID = "+rs.getInt("CONTRACTORS_ID"));
+            int id = rs.getInt("CONTRACTORS_ID");
+            rs.close();
+            ResultSet rs1 = conn.createStatement().executeQuery("SELECT CONTRACTOR_ID, POSITION, FIO, ORGANIZATION_NAME, ADDRESS FROM CONTRACTORS WHERE CONTRACTOR_ID = "+id);
 
             Contractor contractor = new Contractor();
             contractor.ID = rs1.getInt("CONTRACTOR_ID");
             contractor.fio = rs1.getString("FIO");
             contractor.orgName = rs1.getString("ORGANIZATION_NAME");
             contractor.address = rs1.getString("ADDRESS");
-
+            rs1.close();
             contractors.setConverter(new StringConverter<Contractor>() {
                 @Override
                 public String toString(Contractor object) {
@@ -121,10 +122,12 @@ public class ForWindowController implements Initializable {
 
             ResultSet rs2 = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM TABLES WHERE TABLE_ID = "+tableID);
             nameField.setText(rs2.getString("TABLE_NAME"));
+            rs2.close();
             addressField.setText(contractors.getValue().address);
             fioField.setText(contractors.getValue().fio);
             ResultSet rs12 = conn.createStatement().executeQuery("SELECT ORGANIZATION_NAME FROM PROFILES WHERE PROFILE_ID = "+user.getInt("PROFILE_ID",1));
             orgProfileField.setText(rs12.getString("ORGANIZATION_NAME"));
+            rs12.close();
         }catch (Exception ex){PrintException.print(ex);}
     }
 }

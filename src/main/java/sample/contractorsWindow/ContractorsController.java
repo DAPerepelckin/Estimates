@@ -142,20 +142,23 @@ public class ContractorsController implements Initializable {
                     Optional<ButtonType> option = alert.showAndWait();
                     if (option.get() == ButtonType.OK) {
                         ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(CONTRACTORS_ID) FROM TABLES WHERE CONTRACTORS_ID = "+contractors.getSelectionModel().getSelectedItem().getId());
-                        if(rs.getInt("COUNT(CONTRACTORS_ID)")==0) {
+                        int count = rs.getInt("COUNT(CONTRACTORS_ID)");
+                        rs.close();
+                        if(count==0) {
                             conn.createStatement().executeUpdate("DELETE FROM CONTRACTORS WHERE CONTRACTOR_ID = " + contractors.getSelectionModel().getSelectedItem().getId());
                             update("");
                         }else{
                             ResultSet rs2 = conn.createStatement().executeQuery("SELECT TABLE_NAME FROM TABLES WHERE CONTRACTORS_ID = "+contractors.getSelectionModel().getSelectedItem().getId());
-                            String s ="";
+                            StringBuilder s = new StringBuilder();
                             while (rs2.next()){
-                                s=s+rs2.getString("TABLE_NAME")+", ";
+                                s.append(rs2.getString("TABLE_NAME")).append(", ");
                             }
-                            s = s.substring(0,s.length()-2);
+                            rs2.close();
+                            s = new StringBuilder(s.substring(0, s.length() - 2));
                             alert = new Alert(Alert.AlertType.WARNING);
                             alert.setTitle("Заказчик используется в сметах");
                             alert.setHeaderText("Заказчик, который вы хотите удалить, используется в сметах:");
-                            alert.setContentText(s);
+                            alert.setContentText(s.toString());
                             alert.show();
                         }
                     }
@@ -177,6 +180,7 @@ public class ContractorsController implements Initializable {
                 int okpo = rs.getInt("OKPO");
                 if(address.toLowerCase().contains(search.toLowerCase())||orgName.toLowerCase().contains(search.toLowerCase()))contractorList.add(new ContractorRow(id,position,fio,orgName,address,okpo));
             }
+            rs.close();
             contractors.getSelectionModel().select(0);
 
         }catch (Exception ex) {PrintException.print(ex);}

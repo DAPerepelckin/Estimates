@@ -1,7 +1,6 @@
 package sample.opionsWindow;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
@@ -13,17 +12,13 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 import sample.PrintException;
 import sample.workBaseWindow.WorkBaseController;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.util.ResourceBundle;
 import java.util.prefs.Preferences;
@@ -71,42 +66,7 @@ public class OptionsController implements Initializable {
 
         applyBnt.setOnAction(e -> applyBnt.getScene().getWindow().hide());
 
-        addBtnDB.setOnAction(e -> {
-            try {
-                FileChooser fileChooser = new FileChooser();
-                File file = fileChooser.showOpenDialog(addBtnDB.getScene().getWindow());
-                if (file != null) {
-                    if (conn.createStatement().executeQuery("SELECT VERSION FROM VERSION").getString("VERSION").equalsIgnoreCase("25.07.11.20")) {
-                        user.put("pathToDB", file.getAbsolutePath());
-                        pathToDBField.setText(file.getAbsolutePath());
-                    } else {
-                        Alert alert = new Alert(Alert.AlertType.WARNING);
-                        alert.setHeaderText("База данных устарела");
-                        alert.setTitle("База данных устарела");
-                        Timeline timeline = new Timeline(
-                                new KeyFrame(
-                                        Duration.millis(1000),
-                                        event -> alert.close()
-                                )
-                        );
-                        alert.show();
-                        timeline.play();
-                    }
-                }
-            }catch (Exception ex){
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setHeaderText("База данных устарела");
-                alert.setTitle("База данных устарела");
-                Timeline timeline = new Timeline(
-                        new KeyFrame(
-                                Duration.millis(2000),
-                                event -> alert.close()
-                        )
-                );
-                alert.show();
-                timeline.play();
-            }
-        });
+        addBtnDB.setOnAction(e -> setPathToDB());
 
         refactorBtn.setOnAction(event -> {
             try {
@@ -150,16 +110,26 @@ public class OptionsController implements Initializable {
         profiles.setOnAction(e->user.putInt("profile_id",profiles.getValue().ID));
 
     }
+
+    private void setPathToDB(){
+        //try {
+            FileChooser fileChooser = new FileChooser();
+            File file = fileChooser.showOpenDialog(addBtnDB.getScene().getWindow());
+            if (file != null) {
+                user.put("pathToDB", file.getAbsolutePath());
+                pathToDBField.setText(file.getAbsolutePath());
+            }
+    }
     public void init(){
         try{
             ResultSet rs = conn.createStatement().executeQuery("SELECT ORGANIZATION_NAME, PROFILE_ID FROM PROFILES");
-
             while (rs.next()){
                 Profile profile = new Profile();
                 profile.ID = rs.getInt("PROFILE_ID");
                 profile.name = rs.getString("ORGANIZATION_NAME");
                 profileList.add(profile);
             }
+            rs.close();
             profiles.setConverter(new StringConverter<Profile>() {
                 @Override
                 public String toString(Profile object) {

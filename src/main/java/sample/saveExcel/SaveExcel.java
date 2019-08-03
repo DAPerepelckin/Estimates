@@ -40,24 +40,31 @@ public class SaveExcel {
     private String contrAddress;
     private int contrOKPO;
     private String contrOrgName;
+    private Connection conn;
+    private int ID;
 
 
-    public void saveEstimateExcel(Connection conn, int ID, Window owner){
+    public void saveEstimateExcel(Connection conn1, int ID1, Window owner){
+        conn = conn1;
+        ID = ID1;
     try {
-        ResultSet tablename = conn.createStatement().executeQuery("SELECT TABLE_NAME, TRANSPORT, POGRUZ, CONTRACTORS_ID FROM TABLES WHERE TABLE_ID = " + ID);
-        int contractorID = tablename.getInt("CONTRACTORS_ID");
+        ResultSet tableName = conn.createStatement().executeQuery("SELECT TABLE_NAME, TRANSPORT, POGRUZ, CONTRACTORS_ID FROM TABLES WHERE TABLE_ID = " + ID);
+        int contractorID = tableName.getInt("CONTRACTORS_ID");
+
         ResultSet rs1 = conn.createStatement().executeQuery("SELECT ORGANIZATION_NAME, ADDRESS, OKPO, FIO, POSITION FROM PROFILES WHERE PROFILE_ID = " + user.getInt("profile_id", 0));
         podrPosition = rs1.getString("POSITION");
         podrFIO = rs1.getString("FIO");
         podrAddress = rs1.getString("ADDRESS");
         podrOKPO = rs1.getInt("OKPO");
         podrOrgName = rs1.getString("ORGANIZATION_NAME");
+        rs1.close();
         ResultSet rs2 = conn.createStatement().executeQuery("SELECT ORGANIZATION_NAME, POSITION, FIO, ADDRESS, OKPO FROM CONTRACTORS WHERE CONTRACTOR_ID = " + contractorID);
         contrPosition = rs2.getString("POSITION");
         contrFIO = rs2.getString("FIO");
         contrAddress = rs2.getString("ADDRESS");
         contrOKPO = rs2.getInt("OKPO");
         contrOrgName = rs2.getString("ORGANIZATION_NAME");
+        rs2.close();
 
 
 
@@ -77,9 +84,10 @@ public class SaveExcel {
             cell = row.createCell(i);
             cell.setCellStyle(styles.tableNameRow);
             if (i == 0) {
-                cell.setCellValue("Ремонтно-отделочные работы ("+tablename.getString("TABLE_NAME")+")");
+                cell.setCellValue("Ремонтно-отделочные работы ("+tableName.getString("TABLE_NAME")+")");
             }
         }
+
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
         sheet.createRow(1);
@@ -141,6 +149,7 @@ public class SaveExcel {
                     name = rs.getString("WORK_NAME");
                 }
                 String unit = rs.getString("UNIT");
+                rs.close();
                 double count = works.getDouble("COUNT");
                 double price = works.getDouble("PRICE");
                 double sum = count*price;
@@ -169,6 +178,7 @@ public class SaveExcel {
                 cell.setCellValue(sum1);
                 index++;
             }
+            works.close();
             sumAll+=s;
             row = sheet.createRow(sheet.getLastRowNum() + 1);
             for (int i = 0; i < 5; i++) {
@@ -185,6 +195,7 @@ public class SaveExcel {
             sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 0, 4));
 
         }
+        groups.close();
         row = sheet.createRow(sheet.getLastRowNum() + 1);
         for (int i = 0; i < 5; i++) {
             cell = row.createCell(i);
@@ -213,7 +224,7 @@ public class SaveExcel {
 
         cell = row.createCell(3);
         cell.setCellStyle(styles.groupNameRow);
-        cell.setCellValue((new DecimalFormat("#0.00").format(tablename.getDouble("TRANSPORT"))));
+        cell.setCellValue((new DecimalFormat("#0.00").format(tableName.getDouble("TRANSPORT"))));
 
         cell = row.createCell(4);
         cell.setCellStyle(styles.groupNameRow);
@@ -221,7 +232,7 @@ public class SaveExcel {
 
         cell = row.createCell(5);
         cell.setCellStyle(styles.groupNameRow);
-        cell.setCellValue(new DecimalFormat("#0.00").format(sumAll/100*tablename.getDouble("TRANSPORT")));
+        cell.setCellValue(new DecimalFormat("#0.00").format(sumAll/100*tableName.getDouble("TRANSPORT")));
 
         sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 0, 1));
 
@@ -240,7 +251,7 @@ public class SaveExcel {
 
         cell = row.createCell(3);
         cell.setCellStyle(styles.groupNameRow);
-        cell.setCellValue((new DecimalFormat("#0.00").format(tablename.getDouble("POGRUZ"))));
+        cell.setCellValue((new DecimalFormat("#0.00").format(tableName.getDouble("POGRUZ"))));
 
         cell = row.createCell(4);
         cell.setCellStyle(styles.groupNameRow);
@@ -248,11 +259,11 @@ public class SaveExcel {
 
         cell = row.createCell(5);
         cell.setCellStyle(styles.groupNameRow);
-        cell.setCellValue(new DecimalFormat("#0.00").format(sumAll/100*tablename.getDouble("POGRUZ")));
+        cell.setCellValue(new DecimalFormat("#0.00").format(sumAll/100*tableName.getDouble("POGRUZ")));
 
         sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 0, 1));
 
-        sumAll = sumAll*(100+tablename.getDouble("POGRUZ")+tablename.getDouble("TRANSPORT"))/100;
+        sumAll = sumAll*(100+tableName.getDouble("POGRUZ")+tableName.getDouble("TRANSPORT"))/100;
 
         row = sheet.createRow(sheet.getLastRowNum()+1);
 
@@ -268,8 +279,8 @@ public class SaveExcel {
         cell.setCellValue(new DecimalFormat("#0.00").format(sumAll));
         sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 0, 4));
 
-        saveKS2Excel(conn,ID);
-        saveKS3Excel(conn,ID);
+        saveKS2Excel();
+        saveKS3Excel();
         File file;
         if(user.getBoolean("ask",true)){
         DirectoryChooser fileChooser = new DirectoryChooser();
@@ -278,15 +289,16 @@ public class SaveExcel {
         }
 
         if(file!=null){
-            File path = new File(file.getAbsolutePath()+"/"+tablename.getString("TABLE_NAME")+".xlsx");
+            File path = new File(file.getAbsolutePath()+"/"+tableName.getString("TABLE_NAME")+".xlsx");
             book.write(new FileOutputStream(path));
             book.close();
             if(user.getBoolean("open",true)){Desktop.getDesktop().open(path);}
         }
+        tableName.close();
         }catch (Exception ex){PrintException.print(ex);}
     }
 
-    private void saveKS2Excel(Connection conn,int ID){
+    private void saveKS2Excel(){
         //ширина столбцов
         {
             sheet1.setColumnWidth(0, 950);
@@ -798,14 +810,14 @@ public class SaveExcel {
             sum1 = 0.0;
             try {
                 ResultSet rs = conn.createStatement().executeQuery("SELECT PRICE,COUNT FROM MAIN_TABLE WHERE TABLE_ID = " + ID);
-                ResultSet rs1 = conn.createStatement().executeQuery("SELECT TRANSPORT, POGRUZ FROM TABLES WHERE TABLE_ID = " + ID);
-
                 while (rs.next()) {
                     sum += rs.getDouble("PRICE") * rs.getDouble("COUNT");
                     sum1 += rs.getDouble("PRICE") * rs.getDouble("COUNT");
                 }
-
+                rs.close();
+                ResultSet rs1 = conn.createStatement().executeQuery("SELECT TRANSPORT, POGRUZ FROM TABLES WHERE TABLE_ID = " + ID);
                 sum = sum * (100 + rs1.getDouble("TRANSPORT") + rs1.getDouble("POGRUZ")) / 100;
+                rs1.close();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -1016,6 +1028,7 @@ public class SaveExcel {
                         workName = wrn.getString("WORK_NAME");
                     }
                     String unit = wrn.getString("UNIT");
+                    wrn.close();
                     double count = works.getDouble("COUNT");
                     double price = works.getDouble("PRICE");
                     double sumWork = count * price;
@@ -1087,6 +1100,7 @@ public class SaveExcel {
                     indexPOR++;
                     indexSMET++;
                 }
+                works.close();
                 {
                     row = sheet1.createRow(sheet1.getLastRowNum() + 1);
 
@@ -1149,6 +1163,7 @@ public class SaveExcel {
                 }
 
             }
+            groups.close();
 
         }catch (Exception ex){
             PrintException.print(ex);}
@@ -1253,7 +1268,9 @@ public class SaveExcel {
                 cell.setCellValue("%");
             }
             sheet1.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 22, 24));
-            double c1d = conn.createStatement().executeQuery("SELECT TRANSPORT FROM TABLES WHERE TABLE_ID = " + ID).getDouble("TRANSPORT");
+            ResultSet rs1d = conn.createStatement().executeQuery("SELECT TRANSPORT FROM TABLES WHERE TABLE_ID = " + ID);
+            double c1d = rs1d.getDouble("TRANSPORT");
+            rs1d.close();
             String c1 = new DecimalFormat("#0.00").format(c1d);
             for (int i = 25; i < 28; i++) {
                 cell = row.createCell(i);
@@ -1316,7 +1333,9 @@ public class SaveExcel {
                 cell.setCellValue("%");
             }
             sheet1.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), 22, 24));
-            double c2d = conn.createStatement().executeQuery("SELECT POGRUZ FROM TABLES WHERE TABLE_ID = " + ID).getDouble("POGRUZ");
+            ResultSet rs2d = conn.createStatement().executeQuery("SELECT POGRUZ FROM TABLES WHERE TABLE_ID = " + ID);
+            double c2d = rs2d.getDouble("POGRUZ");
+            rs2d.close();
             String c2 = new DecimalFormat("#0.00").format(c2d);
             for (int i = 25; i < 28; i++) {
                 cell = row.createCell(i);
@@ -1539,7 +1558,7 @@ public class SaveExcel {
 
     }
 
-    private void saveKS3Excel(Connection conn,int ID){
+    private void saveKS3Excel(){
         //ширина столбцов
         {
             sheet2.setColumnWidth(0, 950);
@@ -1585,7 +1604,6 @@ public class SaveExcel {
         }
 
         //шапка
-        double sum1 = 0.0;
         String s = "";
         {
             row = sheet2.createRow(0);
@@ -2133,14 +2151,13 @@ public class SaveExcel {
         double sum = 0.0;
         try {
             ResultSet rs = conn.createStatement().executeQuery("SELECT PRICE,COUNT FROM MAIN_TABLE WHERE TABLE_ID = " + ID);
-            ResultSet rs1 = conn.createStatement().executeQuery("SELECT TRANSPORT, POGRUZ FROM TABLES WHERE TABLE_ID = " + ID);
-
             while (rs.next()) {
                 sum += rs.getDouble("PRICE") * rs.getDouble("COUNT");
-                sum1 += rs.getDouble("PRICE") * rs.getDouble("COUNT");
             }
-
+            rs.close();
+            ResultSet rs1 = conn.createStatement().executeQuery("SELECT TRANSPORT, POGRUZ FROM TABLES WHERE TABLE_ID = " + ID);
             sum = sum * (100 + rs1.getDouble("TRANSPORT") + rs1.getDouble("POGRUZ")) / 100;
+            rs1.close();
         } catch (Exception ex) {
             ex.printStackTrace();
         }

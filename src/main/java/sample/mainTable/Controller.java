@@ -467,9 +467,7 @@ public class Controller implements Initializable {
 
         try {
             rowMainCollection.clear();
-
             ResultSet rsGroup = conn.createStatement().executeQuery("SELECT GROUP_ID,GROUP_NAME FROM GROUPS WHERE TABLE_ID = "+ID);
-
             while (rsGroup.next()){
                 double s = 0.0;
                 rowMainCollection.add(new MainRow(rsGroup.getInt("GROUP_ID"),rsGroup.getString("GROUP_NAME"),"","","","","",0));
@@ -484,6 +482,7 @@ public class Controller implements Initializable {
                         name = rs.getString("WORK_NOTE");
                     }
                     String unit = rs1.getString("UNIT");
+                    rs1.close();
                     double count = rs.getDouble("COUNT");
                     double price = rs.getDouble("PRICE");
                     double sum = count*price;
@@ -494,13 +493,15 @@ public class Controller implements Initializable {
                     s+=sum;
                     rowMainCollection.add(new MainRow(num,name,unit,count1,price1,sum1,"",ID));
                 }
+                rs.close();
                 String groupSum = new DecimalFormat("#0.00").format(s);
                 rowMainCollection.add(new MainRow(null,"","","","",groupSum,"",0));
             }
+            rsGroup.close();
             ResultSet sum1 = conn.createStatement().executeQuery("SELECT COUNT,PRICE FROM MAIN_TABLE WHERE TABLE_ID = "+ID);
             double sum1Work=0.0;
             while(sum1.next()){sum1Work+=sum1.getDouble("PRICE")*sum1.getDouble("COUNT");}
-
+            sum1.close();
             ResultSet rs2 = conn.createStatement().executeQuery("SELECT TRANSPORT, POGRUZ FROM TABLES WHERE TABLE_ID = "+ID);
             costs.clear();
             double count1;
@@ -509,6 +510,7 @@ public class Controller implements Initializable {
                 count1 = rs2.getDouble("TRANSPORT");
                 count2 = rs2.getDouble("POGRUZ");
             }
+            rs2.close();
             double price1 =sum1Work/100;
             String s1 = "Транспортные расходы";
             String s2 = "Погрузочно-разгрузочные расходы";
@@ -545,7 +547,7 @@ public class Controller implements Initializable {
         update();
     }
 
-    public void onEditChanged(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
+    public void onEditChanged1(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
         try {
             if (mainRowStringCellEditEvent.getTableColumn().getText().equalsIgnoreCase("Наименование")) {
                 conn.createStatement().executeUpdate("UPDATE MAIN_TABLE SET WORK_NOTE = '" + mainRowStringCellEditEvent.getNewValue() + "' WHERE TABLE_ID = " + ID + " AND N = " + mainRowStringCellEditEvent.getRowValue().getNum());
@@ -598,11 +600,11 @@ public class Controller implements Initializable {
         }catch (Exception ex){PrintException.print(ex);}
     }
 
-    public void onEditCancel(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
+    public void onEditCancel() {
         edit = false;
     }
 
-    public void onEditStart(TableColumn.CellEditEvent<MainRow, String> mainRowStringCellEditEvent) {
+    public void onEditStart() {
         edit = true;
     }
 }

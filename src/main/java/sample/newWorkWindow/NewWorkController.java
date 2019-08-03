@@ -76,6 +76,7 @@ public class NewWorkController implements Initializable {
                 }else {
                     ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(N) FROM WORKS WHERE N LIKE '" + groups.getValue().id + "%'");
                     double r = (rs.getInt("COUNT(N)") + 1);
+                    rs.close();
                     r = r / 1000;
                     r = r + groups.getValue().id;
                     if(workID==-1) {
